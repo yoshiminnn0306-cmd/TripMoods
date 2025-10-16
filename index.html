@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TripMoods - 気分で選ぶ旅行アプリ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .brand-color {
+            background-color: #FFAF0F;
+        }
+        .brand-text {
+            color: #FFAF0F;
+        }
+        .brand-border {
+            border-color: #FFAF0F;
+        }
+        .brand-bg-light {
+            background-color: #FFF4E0;
+        }
+        .hover-scale:hover {
+            transform: scale(1.05);
+        }
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-amber-50 via-white to-orange-50">
+    <div id="app"></div>
+
+    <script>
+        const state = {
+            step: 'input',
+            formData: {
+                dates: '',
+                budget: '',
+                mood: '',
+                location: ''
+            },
+            isGenerating: false
+        };
+
+        const prefectures = [
+            '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
+            '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
+            '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県',
+            '岐阜県', '静岡県', '愛知県', '三重県',
+            '滋賀県', '京都府', '大阪府', '兵庫県', '奈良県', '和歌山県',
+            '鳥取県', '島根県', '岡山県', '広島県', '山口県',
+            '徳島県', '香川県', '愛媛県', '高知県',
+            '福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県'
+        ];
+
+        const moods = [
+            { id: 'relax', label: 'のんびりリラックス', icon: '🌿', color: 'bg-green-50' },
+            { id: 'adventure', label: '冒険・アクティブ', icon: '⛰️', color: 'bg-blue-50' },
+            { id: 'gourmet', label: 'グルメ三昧', icon: '🍱', color: 'bg-red-50' },
+            { id: 'culture', label: '文化・芸術', icon: '🎨', color: 'bg-purple-50' },
+            { id: 'nature', label: '自然と触れ合う', icon: '🌸', color: 'bg-pink-50' },
+            { id: 'luxury', label: '贅沢な時間', icon: '✨', color: 'bg-yellow-50' },
+        ];
+
+        const budgetOptions = [
+            { id: 'low', label: '〜3万円', range: '¥10,000-30,000' },
+            { id: 'medium', label: '3〜7万円', range: '¥30,000-70,000' },
+            { id: 'high', label: '7〜15万円', range: '¥70,000-150,000' },
+            { id: 'luxury', label: '15万円〜', range: '¥150,000+' },
+        ];
+
+        const recommendations = {
+            relax: {
+                destination: '箱根温泉',
+                prefecture: '神奈川県',
+                description: '自然に囲まれた温泉郷で心身ともにリフレッシュ',
+                hotel: {
+                    name: '箱根吟遊',
+                    rating: 4.8,
+                    price: '¥45,000〜',
+                    features: ['露天風呂付き客室', '懐石料理', '芦ノ湖ビュー']
+                },
+                restaurants: [
+                    { name: 'すし処 大助', type: '寿司', rating: 4.6, price: '¥8,000' },
+                    { name: '山のホテルダイニングルーム', type: 'フレンチ', rating: 4.7, price: '¥12,000' }
+                ],
+                activities: ['芦ノ湖遊覧船', '箱根神社参拝', '温泉巡り'],
+                season: '紅葉シーズンは特におすすめ',
+                trendScore: 94
+            },
+            adventure: {
+                destination: '富士山・河口湖',
+                prefecture: '山梨県',
+                description: 'アクティビティ満載！富士山を眺めながらアウトドア体験',
+                hotel: {
+                    name: 'PICA富士吉田',
+                    rating: 4.5,
+                    price: '¥18,000〜',
+                    features: ['グランピング', 'BBQ施設', '富士山ビュー']
+                },
+                restaurants: [
+                    { name: 'ほうとう不動', type: 'ほうとう', rating: 4.4, price: '¥1,500' },
+                    { name: 'レストラン ラ・メール', type: 'フレンチ', rating: 4.6, price: '¥6,000' }
+                ],
+                activities: ['富士登山', 'カヤック体験', 'サイクリング'],
+                season: '夏季は特に人気',
+                trendScore: 91
+            },
+            gourmet: {
+                destination: '金沢',
+                prefecture: '石川県',
+                description: '日本海の新鮮な海の幸と伝統の加賀料理を堪能',
+                hotel: {
+                    name: '金沢茶屋',
+                    rating: 4.9,
+                    price: '¥38,000〜',
+                    features: ['加賀料理', '伝統建築', '金箔体験']
+                },
+                restaurants: [
+                    { name: 'すし処 めくみ', type: '寿司', rating: 4.8, price: '¥15,000' },
+                    { name: '加賀料理 つば甚', type: '加賀料理', rating: 4.7, price: '¥12,000' }
+                ],
+                activities: ['近江町市場散策', '金箔ソフト', '和菓子作り体験'],
+                season: '冬はカニが絶品',
+                trendScore: 96
+            },
+            culture: {
+                destination: '京都',
+                prefecture: '京都府',
+                description: '千年の古都で日本の伝統文化を体感',
+                hotel: {
+                    name: '京都 翠嵐',
+                    rating: 4.9,
+                    price: '¥55,000〜',
+                    features: ['庭園ビュー', '京懐石', '嵐山の竹林']
+                },
+                restaurants: [
+                    { name: '菊乃井', type: '京料理', rating: 4.9, price: '¥20,000' },
+                    { name: '祇園 さゝ木', type: '割烹', rating: 4.8, price: '¥15,000' }
+                ],
+                activities: ['金閣寺参拝', '茶道体験', '着物レンタル'],
+                season: '春の桜・秋の紅葉が絶景',
+                trendScore: 98
+            },
+            nature: {
+                destination: '屋久島',
+                prefecture: '鹿児島県',
+                description: '世界自然遺産で神秘の森林浴を体験',
+                hotel: {
+                    name: 'サンカラホテル',
+                    rating: 4.7,
+                    price: '¥42,000〜',
+                    features: ['オーシャンビュー', 'スパ', '自然素材料理']
+                },
+                restaurants: [
+                    { name: '潮騒', type: '海鮮料理', rating: 4.5, price: '¥5,000' },
+                    { name: '島料理 あらき', type: '郷土料理', rating: 4.6, price: '¥4,000' }
+                ],
+                activities: ['縄文杉トレッキング', 'ウミガメ観察', 'カヤック'],
+                season: '5-6月は新緑が美しい',
+                trendScore: 89
+            },
+            luxury: {
+                destination: '軽井沢',
+                prefecture: '長野県',
+                description: '上質なリゾートで贅沢なひとときを',
+                hotel: {
+                    name: 'ホシノリゾート 軽井沢',
+                    rating: 4.9,
+                    price: '¥65,000〜',
+                    features: ['温泉', 'ミシュラン星付きレストラン', 'スパ']
+                },
+                restaurants: [
+                    { name: 'ブレストンコート ユカワタン', type: 'フレンチ', rating: 4.9, price: '¥25,000' },
+                    { name: '村民食堂', type: 'イタリアン', rating: 4.7, price: '¥8,000' }
+                ],
+                activities: ['ショッピング', 'ゴルフ', '美術館巡り'],
+                season: '避暑地として夏が人気',
+                trendScore: 95
+            }
+        };
+
+        function calculateDistance(from) {
+            const distances = {
+                '東京都': { '箱根温泉': 90, '富士山・河口湖': 120, '金沢': 450, '京都': 470, '屋久島': 1450, '軽井沢': 150 },
+                '神奈川県': { '箱根温泉': 60, '富士山・河口湖': 100, '金沢': 480, '京都': 500, '屋久島': 1480, '軽井沢': 180 },
+                '大阪府': { '箱根温泉': 480, '富士山・河口湖': 500, '金沢': 280, '京都': 50, '屋久島': 900, '軽井沢': 520 },
+                '愛知県': { '箱根温泉': 350, '富士山・河口湖': 320, '金沢': 220, '京都': 180, '屋久島': 1100, '軽井沢': 320 },
+                '北海道': { '箱根温泉': 1100, '富士山・河口湖': 1150, '金沢': 1050, '京都': 1200, '屋久島': 2300, '軽井沢': 1050 },
+                '福岡県': { '箱根温泉': 1050, '富士山・河口湖': 1100, '金沢': 750, '京都': 550, '屋久島': 650, '軽井沢': 1150 },
+            };
+            return distances[from] || { '箱根温泉': 300, '富士山・河口湖': 350, '金沢': 400, '京都': 450, '屋久島': 1200, '軽井沢': 300 };
+        }
+
+        function updateFormData(key, value) {
+            state.formData[key] = value;
+            render();
+        }
+
+        function handleGenerate() {
+            state.isGenerating = true;
+            render();
+            setTimeout(() => {
+                state.isGenerating = false;
+                state.step = 'result';
+                render();
+            }, 2500);
+        }
+
+        function resetApp() {
+            state.step = 'input';
+            render();
+        }
+
+        function renderInputPage() {
+            const isFormValid = state.formData.dates && state.formData.budget && state.formData.mood && state.formData.location;
+            
+            return `
+                <header class="bg-white shadow-sm">
+                    <div class="max-w-4xl mx-auto px-6 py-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center brand-color">
+                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 class="text-2xl font-bold text-gray-900">TripMoods</h1>
+                                <p class="text-sm text-gray-500">どこ行く？じゃなくて、どんな気分？</p>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="max-w-4xl mx-auto px-6 py-12">
+                    <div class="text-center mb-12">
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 brand-bg-light">
+                            <svg class="w-4 h-4 brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                            </svg>
+                            <span class="text-sm font-medium brand-text">AIが最適な旅先を提案</span>
+                        </div>
+                        <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                            今の気分から、<br />
+                            あなただけの旅を見つけよう
+                        </h2>
+                        <p class="text-gray-600 text-lg">
+                            日程・予算・気分を入力するだけで、AIがSNSや口コミをもとに<br />
+                            ぴったりの旅先をレコメンドします
+                        </p>
+                    </div>
+
+                    <div class="bg-white rounded-3xl shadow-xl p-8 mb-8">
+                        <div class="mb-8">
+                            <label class="flex items-center gap-2 text-gray-700 font-semibold mb-4">
+                                <svg class="w-5 h-5 brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                旅行の日程
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="例：2025年11月15日〜17日（2泊3日）"
+                                value="${state.formData.dates}"
+                                oninput="updateFormData('dates', this.value)"
+                                class="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-amber-400 transition-colors text-lg"
+                            />
+                        </div>
+
+                        <div class="mb-8">
+                            <label class="flex items-center gap-2 text-gray-700 font-semibold mb-4">
+                                <svg class="w-5 h-5 brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                出発地（現在地）
+                            </label>
+                            <select
+                                onchange="updateFormData('location', this.value)"
+                                class="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-amber-400 transition-colors text-lg bg-white"
+                            >
+                                <option value="">都道府県を選択してください</option>
+                                ${prefectures.map(pref => `<option value="${pref}" ${state.formData.location === pref ? 'selected' : ''}>${pref}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div class="mb-8">
+                            <label class="flex items-center gap-2 text-gray-700 font-semibold mb-4">
+                                <svg class="w-5 h-5 brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                </svg>
+                                予算（1人あたり）
+                            </label>
+                            <div class="grid grid-cols-2 gap-3">
+                                ${budgetOptions.map(option => `
+                                    <button
+                                        onclick="updateFormData('budget', '${option.id}')"
+                                        class="p-4 rounded-xl border-2 transition-all ${state.formData.budget === option.id ? 'brand-border bg-amber-50' : 'border-gray-200 hover:border-gray-300'}"
+                                    >
+                                        <div class="font-semibold text-gray-900">${option.label}</div>
+                                        <div class="text-sm text-gray-500">${option.range}</div>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="mb-8">
+                            <label class="flex items-center gap-2 text-gray-700 font-semibold mb-4">
+                                <svg class="w-5 h-5 brand-text" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                                今の気分は？
+                            </label>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                ${moods.map(mood => `
+                                    <button
+                                        onclick="updateFormData('mood', '${mood.id}')"
+                                        class="p-4 rounded-xl border-2 transition-all hover-scale ${state.formData.mood === mood.id ? 'brand-border bg-amber-50' : 'border-gray-200 hover:border-gray-300'} ${mood.color}"
+                                    >
+                                        <div class="text-3xl mb-2">${mood.icon}</div>
+                                        <div class="font-medium text-gray-900 text-sm">${mood.label}</div>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <button
+                            onclick="handleGenerate()"
+                            ${!isFormValid ? 'disabled' : ''}
+                            class="w-full py-5 rounded-xl font-bold text-white text-lg shadow-lg hover:shadow-xl transition-all ${!isFormValid ? 'opacity-50 cursor-not-allowed' : ''} brand-color flex items-center justify-center gap-2"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                            </svg>
+                            AIに最適な旅先を提案してもらう
+                        </button>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div class="text-center p-6">
+                            <div class="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center brand-bg-light">
+                                <svg class="w-6 h-6 brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">SNS・口コミ分析</h3>
+                            <p class="text-sm text-gray-600">最新のトレンドと実際の評価をAIが分析</p>
+                        </div>
+                        <div class="text-center p-6">
+                            <div class="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center brand-bg-light">
+                                <svg class="w-6 h-6 brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">季節に応じた提案</h3>
+                            <p class="text-sm text-gray-600">旅行時期に最適なスポットを厳選</p>
+                        </div>
+                        <div class="text-center p-6">
+                            <div class="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center brand-bg-light">
+                                <svg class="w-6 h-6 brand-text" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">気分マッチング</h3>
+                            <p class="text-sm text-gray-600">あなたの気分にぴったりの旅先を発見</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLoadingPage() {
+            return `
+                <div class="min-h-screen flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse brand-color">
+                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">AIが旅先を分析中...</h2>
+                        <p class="text-gray-600">SNS・口コミ・季節データを解析しています</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderResultPage() {
+            const currentRec = recommendations[state.formData.mood] || recommendations.relax;
+            const distance = calculateDistance(state.formData.location)[currentRec.destination];
+            const travelTime = Math.round(distance / 60);
+
+            return `
+                <header class="bg-white shadow-sm">
+                    <div class="max-w-5xl mx-auto px-6 py-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center brand-color">
+                                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h1 class="text-2xl font-bold text-gray-900">TripMoods</h1>
+                                </div>
+                            </div>
+                            <button
+                                onclick="resetApp()"
+                                class="px-6 py-2 rounded-lg font-medium text-white brand-color"
+                            >
+                                別の旅先を探す
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="max-w-5xl mx-auto px-6 py-12">
+                    <div class="text-center mb-8">
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4 brand-bg-light">
+                            <svg class="w-4 h-4 brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                            </svg>
